@@ -13,7 +13,7 @@ export interface ChatInvite {
   civContentOrNot: boolean
   civSearchLoading: boolean
   civLiFirstIsActive: boolean
-  datas: UserTb[]
+  datas?: UserTb[]
 }
 export interface ChatInviteItem {
   ciiMsgInput: string

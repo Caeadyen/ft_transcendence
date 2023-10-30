@@ -62,9 +62,9 @@ const { cnItem, internal, changeMembership } = useChannelNewItem(props)
       </div>
       <div class="Join-exit-confir">
         <button
-          @click="
+          @click=" async () =>
             {
-              if (changeMembership(internal.joinExitFlag, channelId)) {
+              if (await changeMembership(internal.joinExitFlag, channelId)) {
                 $emit('joinOrExitComplete');
               }
 
@@ -81,10 +81,10 @@ const { cnItem, internal, changeMembership } = useChannelNewItem(props)
           class="Password-box"
           placeholder="To join, enter password"
           v-model="cnItem.cniPwdInput"
-          @keyup.enter="
+          @keyup.enter=" async () =>
             {
               if (cnItem.cniPwdInput.length > 0) {
-                if (changeMembership(internal.joinExitFlag, channelId)) {
+                if (await changeMembership(internal.joinExitFlag, channelId)) {
                   $emit('joinOrExitComplete');
                 }
                 cnItem.cniPwdConfirmHeight = '0px';

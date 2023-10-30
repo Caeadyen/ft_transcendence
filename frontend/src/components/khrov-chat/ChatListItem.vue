@@ -24,7 +24,7 @@ const { trimDate } = useGlobal()
     <img id="Avatar" :src="partnerDp" alt="Avatar" />
     <div id="Chat-details">
       <span id="Header">{{ partnerUName }}</span>
-      <span id="Time">{{ trimDate(time) }}</span>
+      <span id="Time">{{ trimDate(time as string) }}</span>
       <span id="Message">{{ cliItem.cliLastMsg }}</span>
       <span id="Notification" v-if="unreadCount">{{ unreadCount }}</span>
       <span id="DeliveryStatus" v-if="!unreadCount && !incomingMsg">{{

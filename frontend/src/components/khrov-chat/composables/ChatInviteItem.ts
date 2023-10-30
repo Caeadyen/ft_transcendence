@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { layer } from '@layui/layer-vue'
-import { useChatsStore } from '@/stores/khrov-chat/chats'
+// import { useChatsStore } from '@/stores/khrov-chat/chats'
 import type { ChatInviteItem } from '@/components/khrov-chat/interface/khrov-chat'
 import { useGlobal } from '@/components/khrov-chat/composables/__Global'
 
@@ -11,7 +11,7 @@ export function useChatInviteItem() {
     ciiMsgInput: ''
   })
 
-  const chatsStore = useChatsStore()
+  // const chatsStore = useChatsStore()
   const { fetchForKhrov } = useGlobal()
   
   const sendNewMsg = async (theirId: number) => {

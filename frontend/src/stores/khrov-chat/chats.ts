@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { useGlobal } from '@/components/khrov-chat/composables/__Global'
+// import { useGlobal } from '@/components/khrov-chat/composables/__Global'
 
-const server = import.meta.env.VITE_BACKEND_SERVER_URI
+// const server = import.meta.env.VITE_BACKEND_SERVER_URI
 
 export const useChatsStore = defineStore('chats', () => {
   const iconNotifCnt = ref<number>(0);

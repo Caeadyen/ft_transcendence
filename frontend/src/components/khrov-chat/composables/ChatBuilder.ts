@@ -4,14 +4,14 @@ import {
   ref, 
   // watch 
 } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useGlobal } from '@/components/khrov-chat/composables/__Global'
+// import { useAuthStore } from '@/stores/auth'
+// import { useGlobal } from '@/components/khrov-chat/composables/__Global'
 
 export function useChatBuilder() {
   const startChat = ref<number>(0)
 
   // const authStore = useAuthStore()
-  const { fetchForKhrov } = useGlobal()
+  // const { fetchForKhrov } = useGlobal()
 
 
   // const ApiHealth = async () => {

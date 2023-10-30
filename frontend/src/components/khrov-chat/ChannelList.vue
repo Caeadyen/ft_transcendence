@@ -8,8 +8,8 @@ import { useChannelList } from '@/components/khrov-chat/composables/ChannelList'
 const chatsStore = useChatsStore()
 const { 
     chList, 
-    channCache, 
-    calculateChannNotif,
+    channCache,
+    getChannelPreviews,
     submitChannMsg,
     setSeen,
     changeActiveBox,
@@ -59,7 +59,7 @@ const {
 
             changeActiveBox('Chl-msgs');
 
-            calculateChannNotif();
+            getChannelPreviews();
             setSeen(chList.chlIdOfFocus);
             chatsStore.manageAllNotifCounter(0, 0, 'channel');
 
