@@ -1,25 +1,14 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { ChatWindow } from '@/components/khrov-chat/interface/khrov-chat'
 import ChatList from '@/components/khrov-chat/ChatList.vue'
 import ChatInvite from '@/components/khrov-chat/ChatInvite.vue'
 import ChannelNew from '@/components/khrov-chat/ChannelNew.vue'
 import ChannelList from '@/components/khrov-chat/ChannelList.vue'
-import { useChatsStore } from '@/stores/chats'
+import { useChatsStore } from '@/stores/khrov-chat/chats'
+import { useChatWindow } from '@/components/khrov-chat/composables/ChatWindow'
 
-const chatsStore = useChatsStore();
-const cWd: ChatWindow = reactive({
-  chnList: 'Chats-tab'
-})
-
-const changeActiveTab = (class_name: string) => {
-  if (!class_name.match(/^Chats-tab$|^Chatinv-tab$|^Channels-tab$|^ChannCreat-tab$/)) {
-    return
-  }
-  cWd.chnList = class_name
-}
+const chatsStore = useChatsStore()
+const { cWd, changeActiveTab } = useChatWindow()
 </script>
-
 <template>
   <div id="Window-container">
     <div>
@@ -124,6 +113,7 @@ const changeActiveTab = (class_name: string) => {
   border-radius: 10px 10px 0 0;
   -webkit-transition: 0.5s;
   transition: 0.5s;
+  font-family: sans-serif, 'Avenir', Helvetica, Arial;
 }
 .Li-tabs:hover,
 .Li-tabs:focus,

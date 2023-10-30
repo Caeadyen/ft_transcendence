@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useChatsStore } from '@/stores/chats'
+import { useChatsStore } from '@/stores/khrov-chat/chats'
 
-const chatsStore = useChatsStore();
+const chatsStore = useChatsStore()
 </script>
 <template>
   <div id="Icon-container">

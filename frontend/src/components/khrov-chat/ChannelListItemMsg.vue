@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { useGlobal } from '@/components/khrov-chat/composables/__Global'
+
 defineProps<{
   name: string
   msg: string
   time: string
   status: string
 }>()
+
+const { trimDate } = useGlobal()
 </script>
 <template>
   <div class="Chn-list-item-msg">
@@ -14,7 +18,7 @@ defineProps<{
     <p class="Message-content-joined" v-if="status == 'joined'">
       {{ name }} has joined the channel
     </p>
-    <span class="Message-content-time" v-if="!status.match(/^exited$|^joined$/)">{{ time }}</span>
+    <span class="Message-content-time" v-if="!status.match(/^exited$|^joined$/)">{{ trimDate(time) }}</span>
     <span class="Message-delivery-status" v-if="status === 'pending'">◷</span>
   </div>
 </template>

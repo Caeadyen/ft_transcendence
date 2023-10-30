@@ -1,48 +1,9 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
 import ChatInviteItem from '@/components/khrov-chat/ChatInviteItem.vue'
 import ChatBlocked from '@/components/khrov-chat/ChatBlocked.vue'
-import type { ChatInvite, UserTb } from '@/components/khrov-chat/interface/khrov-chat'
-import { useChatsStore } from '@/stores/chats'
+import { useChatInvite } from '@/components/khrov-chat/composables/ChatInvite'
 
-const chatsStore = useChatsStore();
-const cInvite: ChatInvite = reactive({
-  civContentOrNot: false,
-  civSearchLoading: false,
-  civSearchInput: '',
-  civLiFirstIsActive: true
-})
-
-let datas: UserTb[]
-
-const searchUsers = async (key: string) => {
-  cInvite.civContentOrNot = false
-  cInvite.civSearchLoading = true
-  if (key.length < 1) {
-    cInvite.civSearchLoading = false
-    return
-  }
-  const response = await chatsStore.fetchForKhrov(`/chats/get/search/user?key=${key}`, 'GET', {});
-  if (response) {
-    try {
-      cInvite.civSearchLoading = false
-      if (!response.ok) throw response
-      const jsonObj = await response.json()
-      datas = jsonObj
-      if (jsonObj.length > 0) {
-        cInvite.civContentOrNot = true
-      }
-    } catch {/* Do nothing */}
-  }
-}
-
-const switchChiActive = (name: string) => {
-  if (!name.match(/^first$|^second$/)) {
-    return
-  }
-  cInvite.civLiFirstIsActive = name === 'first' ? true : false
-  cInvite.civLiFirstIsActive = name === 'second' ? false : true
-}
+const { cInvite, searchUsers, switchChiActive } = useChatInvite()
 </script>
 <template>
   <div class="Chat-invite">
@@ -65,7 +26,7 @@ const switchChiActive = (name: string) => {
         />
         <div v-if="cInvite.civContentOrNot">
           <ChatInviteItem
-            v-for="item in datas"
+            v-for="item in cInvite.datas"
             v-bind:key="item.id"
             :theirId="item.id"
             :displayName="item.userName"

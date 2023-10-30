@@ -1,16 +1,14 @@
-import { defineStore } from 'pinia'
-import { 
-  computed, 
-  reactive 
-} from 'vue'
-import type { 
+import { reactive, onMounted, watch } from 'vue'
+import { useChatsStore } from '@/stores/khrov-chat/chats'
+import { socket } from '@/sockets/sockets'
+import type {
   ChnListOfflineCache, 
   ChList,
   ChnListChannConn,
 } from '@/components/khrov-chat/interface/khrov-chat'
-import { useChatsStore } from '@/stores/chats'
+import { useGlobal } from '@/components/khrov-chat/composables/__Global'
 
-export const useChannelListStore = defineStore('ChannelList', () => {
+export function useChannelList() {
   const chList: ChList = reactive({
     channConn: [],
     chlItemActive: true,
@@ -49,11 +47,8 @@ export const useChannelListStore = defineStore('ChannelList', () => {
   const channCache: any = reactive({})
   const offlineCache: ChnListOfflineCache[] = []
 
-  const getChList = computed(() => chList)
-  const getChannCache = computed(() => channCache)
-  const getOfflineCache = computed(() => offlineCache)
-
   const chatsStore = useChatsStore()
+  const { fetchForKhrov } = useGlobal()
 
   const calculateChannNotif = (channConn: ChnListChannConn[]): number => {
     let total: number = 0;
@@ -65,7 +60,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
   }
 
   const getChannelPreviews = async () => {
-    const response = await chatsStore.fetchForKhrov(`/channels/get/connections/get`, 'GET', {});
+    const response = await fetchForKhrov(`/channels/get/connections/get`, 'GET', {});
     if (response) {
       try {
         if (!response.ok) throw response;
@@ -82,7 +77,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
   }
 
   const getFocusedChannelHistory = async () => {
-    const response = await chatsStore.fetchForKhrov(`/channels/get/connections/chann/${chList.chlIdOfFocus}`, 'GET', {});
+    const response = await fetchForKhrov(`/channels/get/connections/chann/${chList.chlIdOfFocus}`, 'GET', {});
     if (response) {
       try {
         if (!response.ok) {
@@ -119,7 +114,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
     }
     offlineCache.push(tmp)
     chList.chlMsgInput = ''
-    const response = await chatsStore.fetchForKhrov('/channels', 'PUT', offlineCache);
+    const response = await fetchForKhrov('/channels', 'PUT', offlineCache);
     if (response) 
       if (response.ok)
         offlineCache.length = 0;
@@ -129,7 +124,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
     const tmp = {
       chId: chId
     }
-    await chatsStore.fetchForKhrov(`/channels/put/set-seen`, 'PUT', tmp);
+    await fetchForKhrov(`/channels/put/set-seen`, 'PUT', tmp);
   }
 
   const changeActiveBox = (name: string) => {
@@ -161,7 +156,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
       chList.notifMsg = 'Input in "userName" must be more than 3 chars'
       return
     }
-    const response = await chatsStore.fetchForKhrov(`/channels/?chId=${chList.chlIdOfFocus}&userName=${userNameInput}`, 'GET', {});
+    const response = await fetchForKhrov(`/channels/?chId=${chList.chlIdOfFocus}&userName=${userNameInput}`, 'GET', {});
     if (response) {
       try {
         if (!response.ok) throw response;
@@ -201,7 +196,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
       mutedUntil: mutedUntil.toISOString()
     }
   
-    const response = await chatsStore.fetchForKhrov(`/channels/put/channel/moderate`, 'PUT', tmp);
+    const response = await fetchForKhrov(`/channels/put/channel/moderate`, 'PUT', tmp);
     if (response) {
       try {
         if (!response.ok) throw response;
@@ -238,7 +233,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
       password: passTmp
     }
   
-    const response = await chatsStore.fetchForKhrov('/channels/put/channel/moderate/modify', 'PUT', tmp);
+    const response = await fetchForKhrov('/channels/put/channel/moderate/modify', 'PUT', tmp);
     if (response) {
       try {
         if (!response.ok) throw response;
@@ -253,7 +248,7 @@ export const useChannelListStore = defineStore('ChannelList', () => {
   const getAllPending = async () => {
     chList.getPendingsObj.length = 0
   
-    const response = await chatsStore.fetchForKhrov(`/channels/get/channel/moderate/true/${chList.chlIdOfFocus}`, 'GET', {});
+    const response = await fetchForKhrov(`/channels/get/channel/moderate/true/${chList.chlIdOfFocus}`, 'GET', {});
     if (response) {
       try {
         if (!response.ok) throw response;
@@ -270,14 +265,32 @@ export const useChannelListStore = defineStore('ChannelList', () => {
       memberId: memberId,
       action: choice
     }
-    const response = await chatsStore.fetchForKhrov('/channels/put/channel/moderate/pending/decide', 'PUT', tmp);
+    const response = await fetchForKhrov('/channels/put/channel/moderate/pending/decide', 'PUT', tmp);
     if (response && response.ok) getAllPending();
   }
 
+  watch(() => chList.notifDiff, async (curr: any, expired: any) => {
+    if (curr > expired) {
+      const there_be_sounds = new Audio(chatsStore.getKhrovCelestial);  
+      there_be_sounds.play();
+      chatsStore.manageAllNotifCounter(0, curr);
+    }
+  })
+  
+  onMounted(() => {
+    getChannelPreviews();
+    socket.on('new-channel-event', (id: number) => {
+      const found = chList.channConn.find((element) => element.chId===id)
+      if (found !== undefined || id === 0) {
+        getChannelPreviews();
+      }
+    })
+  })
+  
   return { 
-    getChList, 
-    getChannCache,
-    getOfflineCache,
+    chList, 
+    channCache, 
+    offlineCache, 
     calculateChannNotif,
     getChannelPreviews,
     getFocusedChannelHistory,
@@ -291,4 +304,4 @@ export const useChannelListStore = defineStore('ChannelList', () => {
     getAllPending,
     approveOrReject
   }
-})
+}

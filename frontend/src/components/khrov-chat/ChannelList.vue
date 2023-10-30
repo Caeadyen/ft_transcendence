@@ -1,124 +1,116 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
 import ChannelListItem from '@/components/khrov-chat/ChannelListItem.vue'
 import ChannelListItemMsg from '@/components/khrov-chat/ChannelListItemMsg.vue'
 import ChannelListItemPendings from '@/components/khrov-chat/ChannelListItemPendings.vue'
-import { useChatsStore } from '@/stores/chats'
-import { useChannelListStore } from '@/stores/channelList'
-import { socket } from '@/sockets/sockets'
+import { useChatsStore } from '@/stores/khrov-chat/chats'
+import { useChannelList } from '@/components/khrov-chat/composables/ChannelList'
 
 const chatsStore = useChatsStore()
-const chnlstStore = useChannelListStore()
-
-watch(() => chnlstStore.getChList.notifDiff, async (curr, expired) => {
-  if (curr > expired) {
-    let there_be_sounds = new Audio(chatsStore.getKhrovCelestial);  
-    there_be_sounds.play();
-    chatsStore.manageAllNotifCounter(0, curr);
-  }
-})
-
-onMounted(() => {
-  chnlstStore.getChannelPreviews();
-  socket.on('new-channel-event', (id: number) => {
-    const found = chnlstStore.getChList.channConn.find((element) => element.chId===id)
-    if (found !== undefined || id === 0) {
-      chnlstStore.getChannelPreviews();
-    }
-  })
-})
-
+const { 
+    chList, 
+    channCache, 
+    calculateChannNotif,
+    submitChannMsg,
+    setSeen,
+    changeActiveBox,
+    visibilityToImage,
+    getUserID,
+    moderateMembers,
+    modifyChannel,
+    getAllPending,
+    approveOrReject
+  } = useChannelList()
 </script>
 
 <template>
   <div class="Channel-list">
-    <p class="Empty-channel-list" v-if="chnlstStore.getChList.channConn.length===0">
+    <p class="Empty-channel-list" v-if="chList.channConn.length===0">
       No Channel Conversations to display!
     </p>
     <div
       class="Chl-item Chl-box"
-      :class="{ ChlActive: chnlstStore.getChList.chlItemActive }"
-      v-if="chnlstStore.getChList.channConn.length > 0"
+      :class="{ ChlActive: chList.chlItemActive }"
+      v-if="chList.channConn.length > 0"
     >
       <ChannelListItem
-        v-for="item in chnlstStore.getChList.channConn"
+        v-for="item in chList.channConn"
         v-bind:key="item.chId"
         :channelId="item.chId"
         :role="item.role"
         :unread="item.unreadCount"
         :channelName="item.ch.name"
         :desc="item.ch.desc"
-        :visibility="chnlstStore.visibilityToImage(item.ch.visibility)"
+        :visibility="visibilityToImage(item.ch.visibility)"
         @click="
           {
-            chnlstStore.getChList.chlVisibilityOfFocus = chnlstStore.visibilityToImage(item.ch.visibility);
+            chList.chlVisibilityOfFocus = visibilityToImage(item.ch.visibility);
 
-            chnlstStore.getChList.chlIdOfFocus = item.chId;
+            chList.chlIdOfFocus = item.chId;
 
-            chnlstStore.getChList.chlNameOfFocus = item.ch.name;
+            chList.chlNameOfFocus = item.ch.name;
 
-            chnlstStore.getChList.chlDescOfFocus = item.ch.desc;
+            chList.chlDescOfFocus = item.ch.desc;
 
-            chnlstStore.getChList.chlRoleOfFocus = item.role;
+            chList.chlRoleOfFocus = item.role;
 
-            chnlstStore.getChList.linkStatusOfFocus = item.linkStatus;
+            chList.linkStatusOfFocus = item.linkStatus;
 
-            chnlstStore.getChList.mutedUntilOfFocus = item.mutedUntil;
+            chList.mutedUntilOfFocus = item.mutedUntil;
 
-            chnlstStore.changeActiveBox('Chl-msgs');
+            changeActiveBox('Chl-msgs');
 
-            chnlstStore.getChannelPreviews();
-            chnlstStore.setSeen(chnlstStore.getChList.chlIdOfFocus);
+            calculateChannNotif();
+            setSeen(chList.chlIdOfFocus);
             chatsStore.manageAllNotifCounter(0, 0, 'channel');
 
           }"
       />
     </div>
-    <div class="Chl-msgs Chl-box" :class="{ ChlActive: chnlstStore.getChList.chlMsgsActive }">
+    <div class="Chl-msgs Chl-box" :class="{ ChlActive: chList.chlMsgsActive }">
       <div class="Chl-msgs-header">
         <span
           @click="{
-              chnlstStore.changeActiveBox('Chl-item');
+              changeActiveBox('Chl-item');
 
-              chnlstStore.getChList.chlMsgOrModerate = true;
+              chList.chlMsgOrModerate = true;
 
-              chnlstStore.setSeen(chnlstStore.getChList.chlIdOfFocus);
+              setSeen(chList.chlIdOfFocus);
             }
           "
           >&#11164;</span
         >
-        <img :src="chnlstStore.getChList.chlVisibilityOfFocus" alt="Visibility" />
+        <img :src="chList.chlVisibilityOfFocus" alt="Visibility" />
         <div>
-          <p>{{ chnlstStore.getChList.chlNameOfFocus }}</p>
-          <p>{{ chnlstStore.getChList.chlDescOfFocus }}</p>
+          <p>{{ chList.chlNameOfFocus }}</p>
+          <p>{{ chList.chlDescOfFocus }}</p>
         </div>
         <img
           :src="
-            chnlstStore.getChList.chlMsgOrModerate === true
+            chList.chlMsgOrModerate === true
               ? '/khrov-chat-media/moderation.png'
               : '/khrov-chat-media/messages.png'
           "
           alt="Moderate"
-          v-if="chnlstStore.getChList.chlRoleOfFocus.match(/^owner$|^admin$/)"
+          v-if="chList.chlRoleOfFocus.match(/^owner$|^admin$/)"
           @click="{
-              if (chnlstStore.getChList.chlMsgOrModerate === true) {
-                chnlstStore.getChList.chlMsgOrModerate = false;
+              if (chList.chlMsgOrModerate === true) {
+                chList.chlMsgOrModerate = false;
               } else {
-                chnlstStore.getChList.chlMsgOrModerate = true;
+                chList.chlMsgOrModerate = true;
               }
             }"
         />
       </div>
-      <div class="Chl-msgs-body C-m-b-msgs" :class="{ CmbActive: chnlstStore.getChList.chlMsgOrModerate }">
+      <div class="Chl-msgs-body C-m-b-msgs" :class="{ CmbActive: chList.chlMsgOrModerate }">
         <!-- only create if the channelID exists as a cache in channelsCache  -->
         <!-- v-if the channelId of channel under focus already exists as a key in channCache -->
         <div
           class="Channel-messages"
-          :key="chnlstStore.getChannCache[chnlstStore.getChList.chlIdOfFocus]"
-          v-if="chnlstStore.getChList.chlIdOfFocus in chnlstStore.getChannCache"
+          :key="channCache[chList.chlIdOfFocus]"
+          v-if="chList.chlIdOfFocus in channCache"
         >
           <ChannelListItemMsg
-            v-for="item in chnlstStore.getChannCache[chnlstStore.getChList.chlIdOfFocus]"
+            v-for="item in channCache[chList.chlIdOfFocus]"
             v-bind:key="item"
             :name="item.user.userName"
             :msg="item.outgoing"
@@ -129,38 +121,38 @@ onMounted(() => {
         <!-- rendered if it is channel owner or if the linkStatus not same as 'muted' -->
         <div
           class="New-channel-msg-input"
-          v-if="chnlstStore.getChList.chlRoleOfFocus === 'owner' || chnlstStore.getChList.linkStatusOfFocus != 'muted'"
+          v-if="chList.chlRoleOfFocus === 'owner' || chList.linkStatusOfFocus != 'muted'"
         >
           <input
             type="text"
             class="Channel-msg-box"
-            v-model="chnlstStore.getChList.chlMsgInput"
-            @keyup.enter="chnlstStore.submitChannMsg"
+            v-model="chList.chlMsgInput"
+            @keyup.enter="submitChannMsg"
           />
-          <span class="Channel-msg-send" @click="chnlstStore.submitChannMsg">&#11166;</span>
+          <span class="Channel-msg-send" @click="submitChannMsg">&#11166;</span>
         </div>
         <!-- rendered if user is muted and they are not channel owner -->
         <div
           class="New-channel-msg-input"
-          v-if="chnlstStore.getChList.chlRoleOfFocus != 'owner' && chnlstStore.getChList.linkStatusOfFocus === 'muted'"
+          v-if="chList.chlRoleOfFocus != 'owner' && chList.linkStatusOfFocus === 'muted'"
         >
           <button class="I-am-muted">
             <img src="/khrov-chat-media/muted.png" alt="Muted" />
-            <span>Until {{ chnlstStore.getChList.mutedUntilOfFocus }} </span>
+            <span>Until {{ chList.mutedUntilOfFocus }} </span>
           </button>
         </div>
       </div>
-      <div class="Chl-msgs-body C-m-b-moderate" :class="{ CmbActive: !chnlstStore.getChList.chlMsgOrModerate }">
+      <div class="Chl-msgs-body C-m-b-moderate" :class="{ CmbActive: !chList.chlMsgOrModerate }">
         <div class="Channel-moderate">
           <button
             @click="
               {
-                if (chnlstStore.getChList.modGetUserIdArrowRotate === 'rotate(0deg)') {
-                  chnlstStore.getChList.modGetUserIdBoxDisplayToggle = '80px';
-                  chnlstStore.getChList.modGetUserIdArrowRotate = 'rotate(90deg)';
+                if (chList.modGetUserIdArrowRotate === 'rotate(0deg)') {
+                  chList.modGetUserIdBoxDisplayToggle = '80px';
+                  chList.modGetUserIdArrowRotate = 'rotate(90deg)';
                 } else {
-                  chnlstStore.getChList.modGetUserIdBoxDisplayToggle = '0px';
-                  chnlstStore.getChList.modGetUserIdArrowRotate = 'rotate(0deg)';
+                  chList.modGetUserIdBoxDisplayToggle = '0px';
+                  chList.modGetUserIdArrowRotate = 'rotate(0deg)';
                 }
               }
             "
@@ -180,21 +172,21 @@ onMounted(() => {
               type="text"
               class="Chn-mod-get-id-input"
               placeholder="Enter userName"
-              v-model="chnlstStore.getChList.modGetUserIdInput"
-              @keyup.enter="chnlstStore.getUserID(chnlstStore.getChList.modGetUserIdInput)"
+              v-model="chList.modGetUserIdInput"
+              @keyup.enter="getUserID(chList.modGetUserIdInput)"
             />
-            <p class="Chn-mod-get-id-msg" v-if="chnlstStore.getChList.notifMsg">{{ chnlstStore.getChList.notifMsg }}</p>
+            <p class="Chn-mod-get-id-msg" v-if="chList.notifMsg">{{ chList.notifMsg }}</p>
           </div>
 
           <button
             @click=";
               {
-                if (chnlstStore.getChList.modMakeUserAdminArrowRotate === 'rotate(0deg)') {
-                  chnlstStore.getChList.modMakeUserAdminBoxDisplayToggle = '150px';
-                  chnlstStore.getChList.modMakeUserAdminArrowRotate = 'rotate(90deg)';
+                if (chList.modMakeUserAdminArrowRotate === 'rotate(0deg)') {
+                  chList.modMakeUserAdminBoxDisplayToggle = '150px';
+                  chList.modMakeUserAdminArrowRotate = 'rotate(90deg)';
                 } else {
-                  chnlstStore.getChList.modMakeUserAdminBoxDisplayToggle = '0px';
-                  chnlstStore.getChList.modMakeUserAdminArrowRotate = 'rotate(0deg)';
+                  chList.modMakeUserAdminBoxDisplayToggle = '0px';
+                  chList.modMakeUserAdminArrowRotate = 'rotate(0deg)';
                 }
               }
             "
@@ -214,11 +206,11 @@ onMounted(() => {
               type="number"
               class="Chn-mod-moder-member-id"
               placeholder="Enter member ID"
-              v-model="chnlstStore.getChList.modModerMemberId"
+              v-model="chList.modModerMemberId"
             />
-            <select v-model="chnlstStore.getChList.modModerSelectAction" class="Chn-mod-moder-select-action">
+            <select v-model="chList.modModerSelectAction" class="Chn-mod-moder-select-action">
               <option disabled selected :value="''">Select Action</option>
-              <option :value="'setAsAdmin'" v-if="chnlstStore.getChList.chlRoleOfFocus === 'owner'">
+              <option :value="'setAsAdmin'" v-if="chList.chlRoleOfFocus === 'owner'">
                 Assign Admin Role
               </option>
               <option :value="'ban'">Ban</option>
@@ -228,24 +220,24 @@ onMounted(() => {
             <input
               type="number"
               class="Chn-mod-moder-mute-mins"
-              v-if="chnlstStore.getChList.modModerSelectAction === 'mute'"
+              v-if="chList.modModerSelectAction === 'mute'"
               placeholder="Mute for N minutes"
-              v-model="chnlstStore.getChList.modModerMuteMins"
+              v-model="chList.modModerMuteMins"
             />
-            <button class="Chn-mod-moder-submit" @click="chnlstStore.moderateMembers()">Submit</button>
-            <p class="Chn-mod-moder-msg" v-if="chnlstStore.getChList.notifModerMsg">{{ chnlstStore.getChList.notifModerMsg }}</p>
+            <button class="Chn-mod-moder-submit" @click="moderateMembers()">Submit</button>
+            <p class="Chn-mod-moder-msg" v-if="chList.notifModerMsg">{{ chList.notifModerMsg }}</p>
           </div>
 
           <button
-            v-show="chnlstStore.getChList.chlRoleOfFocus === 'owner'"
+            v-show="chList.chlRoleOfFocus === 'owner'"
             @click="
               {
-                if (chnlstStore.getChList.modModifyChannelArrowRotate === 'rotate(0deg)') {
-                  chnlstStore.getChList.modModifyChannelBoxDisplayToggle = '160px';
-                  chnlstStore.getChList.modModifyChannelArrowRotate = 'rotate(90deg)';
+                if (chList.modModifyChannelArrowRotate === 'rotate(0deg)') {
+                  chList.modModifyChannelBoxDisplayToggle = '160px';
+                  chList.modModifyChannelArrowRotate = 'rotate(90deg)';
                 } else {
-                  chnlstStore.getChList.modModifyChannelBoxDisplayToggle = '0px';
-                  chnlstStore.getChList.modModifyChannelArrowRotate = 'rotate(0deg)';
+                  chList.modModifyChannelBoxDisplayToggle = '0px';
+                  chList.modModifyChannelArrowRotate = 'rotate(0deg)';
                 }
               }
             "
@@ -260,8 +252,8 @@ onMounted(() => {
             </svg>
             Modify Channel
           </button>
-          <div v-show="chnlstStore.getChList.chlRoleOfFocus === 'owner'">
-            <select v-model="chnlstStore.getChList.modModifySelectVisi" class="Chn-mod-modify-select-visi">
+          <div v-show="chList.chlRoleOfFocus === 'owner'">
+            <select v-model="chList.modModifySelectVisi" class="Chn-mod-modify-select-visi">
               <option disabled selected :value="''">Select Visibility</option>
               <option :value="'public'">Public</option>
               <option :value="'private'">Private</option>
@@ -270,27 +262,27 @@ onMounted(() => {
             <input
               type="text"
               class="Chn-mod-modify-password"
-              v-if="chnlstStore.getChList.modModifySelectVisi === 'password'"
+              v-if="chList.modModifySelectVisi === 'password'"
               placeholder="Set new password"
-              v-model="chnlstStore.getChList.modModifyPwd"
+              v-model="chList.modModifyPwd"
             />
-            <button class="Chn-mod-modify-submit" @click="chnlstStore.modifyChannel()">Submit</button>
-            <p class="Chn-mod-modify-msg" v-if="chnlstStore.getChList.notifModifyMsg">
-              {{ chnlstStore.getChList.notifModifyMsg }}
+            <button class="Chn-mod-modify-submit" @click="modifyChannel()">Submit</button>
+            <p class="Chn-mod-modify-msg" v-if="chList.notifModifyMsg">
+              {{ chList.notifModifyMsg }}
             </p>
           </div>
 
           <button
             @click="
               {
-                if (chnlstStore.getChList.modPendingRequestsArrowRotate === 'rotate(0deg)') {
-                  chnlstStore.getChList.modPendingRequestsBoxDisplayToggle = '150px';
-                  chnlstStore.getChList.modPendingRequestsArrowRotate = 'rotate(90deg)';
+                if (chList.modPendingRequestsArrowRotate === 'rotate(0deg)') {
+                  chList.modPendingRequestsBoxDisplayToggle = '150px';
+                  chList.modPendingRequestsArrowRotate = 'rotate(90deg)';
 
-                  chnlstStore.getAllPending();
+                  getAllPending();
                 } else {
-                  chnlstStore.getChList.modPendingRequestsBoxDisplayToggle = '0px';
-                  chnlstStore.getChList.modPendingRequestsArrowRotate = 'rotate(0deg)';
+                  chList.modPendingRequestsBoxDisplayToggle = '0px';
+                  chList.modPendingRequestsArrowRotate = 'rotate(0deg)';
                 }
               }
             "
@@ -306,16 +298,16 @@ onMounted(() => {
             Pending Requests
           </button>
           <div>
-            <div v-if="chnlstStore.getChList.getPendingsObj" :key="chnlstStore.getChList.getPendingsObjRef">
+            <div v-if="chList.getPendingsObj" :key="chList.getPendingsObjRef">
               <ChannelListItemPendings
-                v-for="item in chnlstStore.getChList.getPendingsObj"
+                v-for="item in chList.getPendingsObj"
                 v-bind:key="item.userId"
                 :userId="item.userId"
                 :userName="item.user.userName"
                 :chId="item.chId"
-                @to-approve="(choice) => chnlstStore.approveOrReject(choice, item.userId)"
+                @to-approve="(choice) => approveOrReject(choice, item.userId)"
               />
-              <p :key="chnlstStore.getChList.getPendingsObjRef" v-if="!chnlstStore.getChList.getPendingsObj.length">
+              <p :key="chList.getPendingsObjRef" v-if="!chList.getPendingsObj.length">
                 No pending member request
               </p>
             </div>
@@ -557,14 +549,14 @@ onMounted(() => {
   background-color: #eeeefc;
 }
 .Channel-moderate > button:nth-child(1) > svg {
-  transform: v-bind('chnlstStore.getChList.modGetUserIdArrowRotate');
+  transform: v-bind('chList.modGetUserIdArrowRotate');
   transition: 0.5s;
   -webkit-transition: 0.5s;
 }
 .Channel-moderate > div:nth-child(2) {
   display: block;
   width: 100%;
-  height: v-bind('chnlstStore.getChList.modGetUserIdBoxDisplayToggle');
+  height: v-bind('chList.modGetUserIdBoxDisplayToggle');
   overflow: hidden;
   border: none;
   padding: 0 5px;
@@ -613,14 +605,14 @@ onMounted(() => {
   background-color: #eeeefc;
 }
 .Channel-moderate > button:nth-child(3) > svg {
-  transform: v-bind('chnlstStore.getChList.modMakeUserAdminArrowRotate');
+  transform: v-bind('chList.modMakeUserAdminArrowRotate');
   transition: 0.5s;
   -webkit-transition: 0.5s;
 }
 .Channel-moderate > div:nth-child(4) {
   display: block;
   width: 100%;
-  height: v-bind('chnlstStore.getChList.modMakeUserAdminBoxDisplayToggle');
+  height: v-bind('chList.modMakeUserAdminBoxDisplayToggle');
   overflow: hidden;
   border: none;
   padding: 0 5px;
@@ -721,14 +713,14 @@ onMounted(() => {
   background-color: #eeeefc;
 }
 .Channel-moderate > button:nth-child(5) > svg {
-  transform: v-bind('chnlstStore.getChList.modModifyChannelArrowRotate');
+  transform: v-bind('chList.modModifyChannelArrowRotate');
   transition: 0.5s;
   -webkit-transition: 0.5s;
 }
 .Channel-moderate > div:nth-child(6) {
   display: block;
   width: 100%;
-  height: v-bind('chnlstStore.getChList.modModifyChannelBoxDisplayToggle');
+  height: v-bind('chList.modModifyChannelBoxDisplayToggle');
   overflow: hidden;
   border: none;
   padding: 0 5px;
@@ -811,14 +803,14 @@ onMounted(() => {
   background-color: #eeeefc;
 }
 .Channel-moderate > button:nth-child(7) > svg {
-  transform: v-bind('chnlstStore.getChList.modPendingRequestsArrowRotate');
+  transform: v-bind('chList.modPendingRequestsArrowRotate');
   transition: 0.5s;
   -webkit-transition: 0.5s;
 }
 .Channel-moderate > div:nth-child(8) {
   display: block;
   width: 100%;
-  height: v-bind('chnlstStore.getChList.modPendingRequestsBoxDisplayToggle');
+  height: v-bind('chList.modPendingRequestsBoxDisplayToggle');
   overflow: hidden;
   border: none;
   background-color: #f5f5dc;
