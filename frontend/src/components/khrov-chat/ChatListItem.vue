@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { ChatListItem } from '@/components/khrov-chat/interface/khrov-chat'
+import { useChatListItem } from '@/components/khrov-chat/composables/ChatListItem'
+import { useGlobal } from '@/components/khrov-chat/composables/__Global'
 
 const props = defineProps<{
   unionId: number
@@ -16,24 +16,15 @@ const props = defineProps<{
   deliveryStatus: string
 }>()
 
-const cliItem: ChatListItem = reactive({})
-cliItem.cliLastMsg = props.outgoingMsg ? props.outgoingMsg : props.incomingMsg
-if ( cliItem.cliLastMsg &&
-     cliItem.cliLastMsg.match(/^äiänäväiätäeä[0-9]*$|^ädäeäcäläiänäeä[0-9]*$|^äaäcäcäeäpätä[0-9]*$/)) {
-  cliItem.cliLastMsg = '🗣️'
-}
-if (props.deliveryStatus === 'pending') cliItem.cliDeliveryStat = '◷'
-else if (props.deliveryStatus === 'sent') cliItem.cliDeliveryStat = '✓'
-else if (props.deliveryStatus === 'delivered') cliItem.cliDeliveryStat = '✓✓'
-else if (props.deliveryStatus === 'seen') cliItem.cliDeliveryStat = '👁'
+const { cliItem } = useChatListItem(props)
+const { trimDate } = useGlobal()
 </script>
-
 <template>
   <div class="Preview">
     <img id="Avatar" :src="partnerDp" alt="Avatar" />
     <div id="Chat-details">
       <span id="Header">{{ partnerUName }}</span>
-      <span id="Time">{{ time }}</span>
+      <span id="Time">{{ trimDate(time as string) }}</span>
       <span id="Message">{{ cliItem.cliLastMsg }}</span>
       <span id="Notification" v-if="unreadCount">{{ unreadCount }}</span>
       <span id="DeliveryStatus" v-if="!unreadCount && !incomingMsg">{{
@@ -59,6 +50,7 @@ else if (props.deliveryStatus === 'seen') cliItem.cliDeliveryStat = '👁'
 }
 
 #Avatar {
+  height: 100%;
   width: 100%;
   border-radius: 50%;
 }

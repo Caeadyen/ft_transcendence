@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { ChatBlockedItem } from '@/components/khrov-chat/interface/khrov-chat'
-import { layer } from '@layui/layer-vue'
-import { useChatsStore } from '@/stores/chats'
+import { useChatBlockedItem } from '@/components/khrov-chat/composables/ChatBlockedItem'
 
 defineProps<{
   theirId: number
@@ -10,22 +7,7 @@ defineProps<{
   profileDp: string
 }>()
 
-const chatsStore = useChatsStore();
-const cbItem: ChatBlockedItem = reactive({
-  cbiBlockPanelHeight: '0px'
-})
-
-const unblockUser = async (blocked: number, partner: string) => {
-  const tmp = {
-    blockedId: blocked
-  }
-  const response = await chatsStore.fetchForKhrov('/chats/block/user/unblock', 'PUT', tmp);
-  if (response && response.ok) {
-    layer.msg(`You have unblocked ${partner} successfully!`, { time: 5000 })
-  } else {
-    layer.msg(`Could not unblock ${partner}!`, { time: 5000 })
-  }
-}
+const { cbItem, unblockUser } = useChatBlockedItem()
 </script>
 <template>
   <div id="Chat-blocked-item">
@@ -121,12 +103,12 @@ const unblockUser = async (blocked: number, partner: string) => {
 
 .Blocking-box-div {
   display: block;
-  width: 60px;
+  width: 75px;
   height: v-bind('cbItem.cbiBlockPanelHeight');
   overflow: hidden;
   position: absolute;
   bottom: -2px;
-  right: 0;
+  right: 20px;
   -webkit-transition: all 0.5s;
   transition: all 0.5s;
 }
@@ -135,17 +117,21 @@ const unblockUser = async (blocked: number, partner: string) => {
   white-space: nowrap;
   font-size: 8px;
   margin: auto 0;
-  padding: 3px 5px;
+  padding: 3px 10px;
   border: none;
   color: white;
   -webkit-transition: all 0.5s;
   transition: all 0.5s;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
 }
 .Blocking-box-div > :nth-child(1) {
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;
   margin-left: 5px;
   background-color: #73c2fb;
+  margin-right: 2px;
 }
 .Blocking-box-div > :nth-child(2) {
   border-top-right-radius: 5px;

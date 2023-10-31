@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { layer } from '@layui/layer-vue'
-import { useChatsStore } from '@/stores/chats'
+import { useChannelNewItem } from '@/components/khrov-chat/composables/ChannelNewItem'
 
 const props = defineProps<{
   channelId: number
@@ -11,59 +9,12 @@ const props = defineProps<{
   memberOr: string
 }>()
 
-const chatsStore = useChatsStore();
-
-const emit = defineEmits(['inFocus', 'joinOrExitComplete'])
-
-let visImage: string = '/khrov-chat-media/Channel.png'
-if (props.visibility === 'public') {
-  visImage = visImage.substring(0, 18) + 'public' + visImage.substring(18)
-} else if (props.visibility === 'private') {
-  visImage = visImage.substring(0, 18) + 'private' + visImage.substring(18)
-} else if (props.visibility === 'password') {
-  visImage = visImage.substring(0, 18) + 'password' + visImage.substring(18)
-}
-
-let participation: boolean = props.memberOr != 'not' ? true : false
-
-interface JoinStatus {
-  cniConfirmHeight: string
-  cniPwdConfirmHeight: string
-  cniPwdInput: string
-}
-const cnItem: JoinStatus = reactive({
-  cniConfirmHeight: '0px',
-  cniPwdConfirmHeight: '0px',
-  cniPwdInput: ''
-})
-
-let joinExitFlag: boolean = false
-
-const changeMembership = async (joinOrExit: boolean) => {
-  if (!String(cnItem.cniPwdInput).match(/^[a-zA-Z\d]*$/)) {
-    layer.msg('Password Contains Unsupported Characters', { time: 5000 })
-    return
-  }
-  const tmp = {
-    chId: props.channelId,
-    password: cnItem.cniPwdInput,
-    joinOrExit: joinOrExit
-  }
-  cnItem.cniPwdInput = ''
-  const response = await chatsStore.fetchForKhrov(`/channels/change`, 'PUT', tmp);
-  if (response) {
-    try {
-      const jsonObj = await response.json();
-      emit('joinOrExitComplete')
-      layer.msg(jsonObj.message, { time: 5000 })
-    } catch {/* Do nothing */}
-  }
-}
+const { cnItem, internal, changeMembership } = useChannelNewItem(props)
 </script>
 <template>
   <div class="Channel-new-item">
     <div class="Channel-preview">
-      <img class="Visibility" :src="visImage" alt="Visibility" />
+      <img class="Visibility" :src="internal.visImage" alt="Visibility" />
       <div class="Chan-texts">
         <span class="Chan-name">{{ channelName }}</span>
         <span class="Channel-desc">{{ desc }}</span>
@@ -71,19 +22,19 @@ const changeMembership = async (joinOrExit: boolean) => {
       <div>
         <img
           class="Img-join Join-or-leave"
-          :class="{ JlActive: !participation }"
+          :class="{ JlActive: !internal.partake }"
           src="/khrov-chat-media/joinGroup.png"
           alt="Ch-join"
           @click="
             {
               if (visibility != 'password' && cnItem.cniConfirmHeight == '0px') {
-                cnItem.cniConfirmHeight = '40px';
+                cnItem.cniConfirmHeight = '20px';
 
-                joinExitFlag = true;
+                internal.joinExitFlag = true;
               } else if (visibility === 'password' && cnItem.cniPwdConfirmHeight == '0px') {
                 cnItem.cniPwdConfirmHeight = '40px';
 
-                joinExitFlag = true;
+                internal.joinExitFlag = true;
               } else {
                 cnItem.cniConfirmHeight = '0px';
                 cnItem.cniPwdConfirmHeight = '0px';
@@ -93,15 +44,15 @@ const changeMembership = async (joinOrExit: boolean) => {
         />
         <img
           class="Img-leave Join-or-leave"
-          :class="{ JlActive: participation }"
+          :class="{ JlActive: internal.partake }"
           src="/khrov-chat-media/exitGroup.png"
           alt="Ch-exit"
           @click="
             {
               if (cnItem.cniConfirmHeight == '0px') {
-                cnItem.cniConfirmHeight = '40px';
+                cnItem.cniConfirmHeight = '20px';
 
-                joinExitFlag = false;
+                internal.joinExitFlag = false;
               } else {
                 cnItem.cniConfirmHeight = '0px';
               }
@@ -111,9 +62,11 @@ const changeMembership = async (joinOrExit: boolean) => {
       </div>
       <div class="Join-exit-confir">
         <button
-          @click="
+          @click=" async () =>
             {
-              changeMembership(joinExitFlag);
+              if (await changeMembership(internal.joinExitFlag, channelId)) {
+                $emit('joinOrExitComplete');
+              }
 
               cnItem.cniConfirmHeight = '0px';
             }
@@ -128,10 +81,12 @@ const changeMembership = async (joinOrExit: boolean) => {
           class="Password-box"
           placeholder="To join, enter password"
           v-model="cnItem.cniPwdInput"
-          @keyup.enter="
+          @keyup.enter=" async () =>
             {
               if (cnItem.cniPwdInput.length > 0) {
-                changeMembership(joinExitFlag);
+                if (await changeMembership(internal.joinExitFlag, channelId)) {
+                  $emit('joinOrExitComplete');
+                }
                 cnItem.cniPwdConfirmHeight = '0px';
               }
             }
@@ -247,8 +202,9 @@ const changeMembership = async (joinOrExit: boolean) => {
 }
 
 .Join-exit-confir {
+  padding: 0;
   display: block;
-  width: 60px;
+  width: 65px;
   height: v-bind('cnItem.cniConfirmHeight');
   overflow: hidden;
   position: absolute;
@@ -258,15 +214,20 @@ const changeMembership = async (joinOrExit: boolean) => {
   transition: all 0.5s;
 }
 .Join-exit-confir * {
+  position: relative;
+  top: -5px;
+  left: -2px;
   display: inline-block;
   white-space: nowrap;
   font-size: 8px;
   margin: auto 0;
-  padding: 3px 5px;
+  padding: 3px 8px;
   border: none;
   color: white;
   -webkit-transition: all 0.5s;
   transition: all 0.5s;
+  border-radius: 0;
+  box-shadow: none;
   cursor: pointer;
 }
 .Join-exit-confir > :nth-child(1) {
@@ -274,6 +235,7 @@ const changeMembership = async (joinOrExit: boolean) => {
   border-bottom-left-radius: 5px;
   margin-left: 5px;
   background-color: #73c2fb;
+  margin-right: 3px;
 }
 .Join-exit-confir > :nth-child(2) {
   border-top-right-radius: 5px;

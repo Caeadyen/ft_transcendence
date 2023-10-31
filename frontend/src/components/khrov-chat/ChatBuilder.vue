@@ -1,46 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import ChatIcon from '@/components/khrov-chat/ChatIcon.vue'
 import ChatWindow from '@/components/khrov-chat/ChatWindow.vue'
-import { useChatsStore } from '@/stores/chats'
+import { useChatsStore } from '@/stores/khrov-chat/chats'
+import { useChatBuilder } from '@/components/khrov-chat/composables/ChatBuilder'
 
 const chatsStore = useChatsStore();
 const authStore = useAuthStore();
-const startChat = ref<number>(0);
-
-onMounted(() => {
-  document.addEventListener('click', closeChatWindow, false)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', closeChatWindow, false)
-})
-
-// watch(() => authStore.isLoggedIn, (newStatus) => { if (newStatus===true) ApiHealth(); })
-
-// const ApiHealth = async () => {
-//   await chatsStore.fetchForKhrov('/chats/app/plugin/chat/health', 'PUT', {});
-// }
-
-const closeChatWindow = (e: Event) => {
-  const chatWindow = document.getElementById('ChatWindow-container')
-  const chatIcon = document.getElementById('ChatIcon-container')
-
-  if (chatWindow && chatIcon) {
-    if (!chatWindow.contains(e.target as Node) && !chatIcon.contains(e.target as Node)) {
-      chatWindow.style['display'] = 'none'
-    }
-  }
-}
-
-const openChatWindow = () => {
-  const chatWindow = document.getElementById('ChatWindow-container')
-  if (chatWindow) {
-    chatWindow.style['display'] = 'block'
-  }
-}
-
+const { startChat, openChatWindow } = useChatBuilder()
 </script>
 
 <template>
@@ -50,7 +17,7 @@ const openChatWindow = () => {
                                               openChatWindow();
                                               chatsStore.manageAllNotifCounter(0, 0, 'icon');
                                             }
-                                            startChat=1;
+                                            startChat=1;  
                                           }"
     >
       <ChatIcon />

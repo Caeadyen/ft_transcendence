@@ -1,5 +1,6 @@
 export interface ChatBlocked {
   cbkKeyBuild: number
+  output?: Chat_unionTb[]
 }
 export interface ChatBlockedItem {
   cbiBlockPanelHeight: string
@@ -12,6 +13,7 @@ export interface ChatInvite {
   civContentOrNot: boolean
   civSearchLoading: boolean
   civLiFirstIsActive: boolean
+  datas?: UserTb[]
 }
 export interface ChatInviteItem {
   ciiMsgInput: string
@@ -156,4 +158,46 @@ export interface ChnListPendingList {
   user: {
     userName: string
   }
+}
+
+export interface ChNewSearchOutput {
+  id: number
+  name: string
+  desc: string
+  visibility: string
+  role: string
+}
+
+export interface ChNew {
+  chnLiFirstIsActive: boolean
+  chnLiSecondIsActive: boolean
+  chnNameInput: string
+  chnVisiSelect: string
+  chnPassInput: string
+  chnPassValidatorField: string
+  chnChPassLowercase: string
+  chnChPassUppercase: string
+  chnChPassNumber: string
+  chnChPassLength: string
+  chnDescInput: string
+  chnError: string
+  chnSearchInput: string
+  renderSearchOutput: boolean
+  chnSearchLoading: boolean
+  suggestionsOutput: ChNewSearchOutput[]
+  suggestionsOutputRef: number
+  searchOutput: ChNewSearchOutput[]
+  searchOutputRef: number
+}
+
+export interface ChNwItJoinStatus {
+  cniConfirmHeight: string
+  cniPwdConfirmHeight: string
+  cniPwdInput: string
+}
+
+export interface ChNwItInternal {
+  partake: boolean
+  joinExitFlag: boolean
+  visImage: string
 }

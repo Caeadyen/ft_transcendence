@@ -1,58 +1,12 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { ChatInviteItem } from '@/components/khrov-chat/interface/khrov-chat'
-import { layer } from '@layui/layer-vue'
-import { useChatsStore } from '@/stores/chats'
+import { useChatInviteItem } from '@/components/khrov-chat/composables/ChatInviteItem'
 
-const props = defineProps<{
+defineProps<{
   theirId: number
   displayName: string
   profileDp: string
 }>()
-
-const chatsStore = useChatsStore();
-
-const ciItem: ChatInviteItem = reactive({
-  ciiBlockPanelHeight: '0px',
-  ciiMsgPanelHeight: '0px',
-  ciiMsgInput: ''
-})
-
-const sendNewMsg = async () => {
-  if (ciItem.ciiMsgInput.length < 1) {
-    return
-  }
-  const tmp = {
-    receiverId: props.theirId,
-    msg: ciItem.ciiMsgInput
-  }
-  const response = await chatsStore.fetchForKhrov('/chats', 'POST', tmp);
-    if (response) {
-      try {
-        if (!response.ok) {
-          layer.msg('Message could not be sent', { time: 5000 })
-          throw response
-        }
-        ciItem.ciiMsgInput = ''
-        ciItem.ciiMsgPanelHeight = '0px'
-        layer.msg('Message sent Successfully', { time: 5000 })
-      } catch {/* Do nothing */}
-    }
-}
-
-const blockUser = async (blocked: number, partner: string) => {
-  const tmp = {
-    blockedId: blocked
-  }
-  const response = await chatsStore.fetchForKhrov('/chats/block/user', 'PUT', tmp);
-  if (response) {
-    if (response.ok) {
-      layer.msg(`You have blocked ${partner} successfully!`, { time: 5000 })
-    } else {
-      layer.msg(`Could not block ${partner}!`, { time: 5000 })
-    }
-  }
-}
+const { ciItem, sendNewMsg, blockUser } = useChatInviteItem()
 </script>
 <template>
   <div id="Chat-invite-item">
@@ -97,7 +51,7 @@ const blockUser = async (blocked: number, partner: string) => {
       </div>
     </div>
     <div class="Messaging-box-div">
-      <input class="Messaging-box" v-model="ciItem.ciiMsgInput" @keyup.enter="sendNewMsg" />
+      <input class="Messaging-box" v-model="ciItem.ciiMsgInput" @keyup.enter="sendNewMsg(theirId)" />
     </div>
     <div class="Blocking-box-div">
       <button
@@ -197,12 +151,12 @@ const blockUser = async (blocked: number, partner: string) => {
 
 .Blocking-box-div {
   display: block;
-  width: 60px;
+  width: 75px;
   height: v-bind('ciItem.ciiBlockPanelHeight');
   overflow: hidden;
   position: absolute;
   bottom: -1px;
-  right: 0;
+  right: 10px;
   -webkit-transition: all 0.5s;
   transition: all 0.5s;
 }
@@ -211,17 +165,21 @@ const blockUser = async (blocked: number, partner: string) => {
   white-space: nowrap;
   font-size: 8px;
   margin: auto 0;
-  padding: 3px 5px;
+  padding: 3px 10px;
   border: none;
   color: white;
   -webkit-transition: all 0.5s;
   transition: all 0.5s;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
 }
 .Blocking-box-div > :nth-child(1) {
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;
   margin-left: 5px;
   background-color: #73c2fb;
+  margin-right: 2px;
 }
 .Blocking-box-div > :nth-child(2) {
   border-top-right-radius: 5px;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { MessageItem } from '@/components/khrov-chat/interface/khrov-chat'
+import { useChatListItemMsg } from '@/components/khrov-chat/composables/ChatListItemMsg'
+import { useGlobal } from '@/components/khrov-chat/composables/__Global'
 import jwtInterceptor from '@/interceptor/jwtInterceptor';
 import { useMatchStore } from '@/stores/match';
 
@@ -12,20 +12,9 @@ const props = defineProps<{
   theirName: string
 }>()
 
-const msgItem: MessageItem = reactive({})
-
-const baseUrl = import.meta.env.VITE_BACKEND_SERVER_URI
-
-msgItem.msiTimeAlign = props.outgoing == null ? false : true
-msgItem.msiSentOrRcvd = props.outgoing == null ? 'Received' : 'Sent'
-msgItem.msiMsg = props.outgoing == null ? props.incoming : props.outgoing
-msgItem.msiClearFloat = props.outgoing == null ? 'Clear-left' : 'Clear-right'
-if (props.status === 'pending') msgItem.msiStatusOut = '◷'
-else if (props.status === 'sent') msgItem.msiStatusOut = '✓'
-else if (props.status === 'delivered') msgItem.msiStatusOut = '✓✓'
-else if (props.status === 'seen') msgItem.msiStatusOut = '👁'
-
-
+const { msgItem } = useChatListItemMsg(props)
+const { trimDate } = useGlobal()
+const server = import.meta.env.VITE_BACKEND_SERVER_URI
 </script>
 <template>
   <div>
@@ -47,7 +36,7 @@ else if (props.status === 'seen') msgItem.msiStatusOut = '👁'
           <div class="Invite-options">
             {{ `🗣️ ${theirName} invited you to a Game`}}
           </div>
-          <button class="Confirm-delete-li-yes" @click="async () => {
+          <button class="Confirm-accept" @click="async () => {
             const matchId = parseInt(incoming?.replace('äiänäväiätäeä', '') as string)
             $emit('myDecision', 'äaäcäcäeäpätä' + matchId)
             const matchStore = useMatchStore()
@@ -56,10 +45,10 @@ else if (props.status === 'seen') msgItem.msiStatusOut = '👁'
             $router.go(0);
           }">Accept
           </button>
-          <button class="Confirm-delete-li-no" @click="async () => {
+          <button class="Confirm-reject" @click="async () => {
             const matchId = parseInt(incoming?.replace('äiänäväiätäeä', '') as string)
             $emit('myDecision', 'ädäeäcäläiänäeä' + matchId)
-            await jwtInterceptor.post(baseUrl + '/match/decline', { matchId: matchId }, {withCredentials: true})
+            await jwtInterceptor.post(server + '/match/decline', { matchId: matchId }, {withCredentials: true})
           }">Reject
           </button>
         </div>
@@ -69,9 +58,9 @@ else if (props.status === 'seen') msgItem.msiStatusOut = '👁'
         <div class="Invite-options" v-if="incoming&&incoming.match(/^äaäcäcäeäpätä[0-9]*$/)">
           {{ `✅ you accepted ${theirName}'s Invite'. Message them to setup Game`}}
         </div>
-      </div>
+      </div> 
       <span class="Time-status-container" :class="{ AlignTimeRight: msgItem.msiTimeAlign }">
-        {{ time }} <span class="Status-mark" v-if="!incoming">{{ msgItem.msiStatusOut }}</span>
+        {{ trimDate(time) }} <span class="Status-mark" v-if="!incoming">{{ msgItem.msiStatusOut }}</span>
       </span>
     </div>
     <p :class="msgItem.msiClearFloat"></p>
@@ -142,7 +131,7 @@ else if (props.status === 'seen') msgItem.msiStatusOut = '👁'
 .Accept-reject-invite {
   width: 200px;
 }
-button.Confirm-delete-li-yes, button.Confirm-delete-li-no {
+button.Confirm-accept, button.Confirm-reject {
   display: inline-block;
   position: relative;
   border: none;
@@ -152,11 +141,19 @@ button.Confirm-delete-li-yes, button.Confirm-delete-li-no {
   margin-left: 2%;
   font-size: 13px;
   cursor: pointer;
+  border-radius: 12px;
+  box-shadow: none;
 }
-button.Confirm-delete-li-yes {
+button.Confirm-accept {
   background-color: #32de84;
 }
-button.Confirm-delete-li-no {
+button.Confirm-reject {
   background-color: #C34A2C;
+}
+button.Confirm-accept:hover {
+  box-shadow: 0 0 2px #32de84;
+}
+button.Confirm-reject:hover {
+  box-shadow: 0 0 2px #C34A2C;
 }
 </style>
